@@ -158,13 +158,13 @@
     </div>
     <div class="field">
       <label>Password</label>
-      <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')submitLogin()">
+      <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
     </div>
-    <button class="btn" id="loginBtn" onclick="submitLogin()">Sign In</button>
+    <button class="btn" id="loginBtn">Sign In</button>
 
     <div class="divider">or</div>
 
-    <button class="btn-google" onclick="googleLogin()">
+    <button class="btn-google" id="googleBtn">
       <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
         <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
         <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -175,8 +175,8 @@
     </button>
   </div>
 
-  <div class="toggle-link">
-    Don't have an account? <a onclick="toggleRegister()">Sign up</a>
+  <div class="toggle-link" id="toggleLink">
+    Don't have an account? <a id="toggleBtn" href="#">Sign up</a>
   </div>
 </div>
 
@@ -190,31 +190,45 @@
     GoogleAuthProvider,
     signInWithPopup
   } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-  import { firebaseConfig } from '/firebase-config.js';
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
+  const firebaseConfig = {
+    apiKey: "AIzaSyD0MPpZCsbRuntV60sHTvf4u-rpXcGRwd4",
+    authDomain: "wpbulk-456c1.firebaseapp.com",
+    projectId: "wpbulk-456c1",
+    storageBucket: "wpbulk-456c1.firebasestorage.app",
+    messagingSenderId: "917411090065",
+    appId: "1:917411090065:web:4f3fbdca5af10dc77a3930"
+  };
+
+  const app      = initializeApp(firebaseConfig);
+  const auth     = getAuth(app);
   const provider = new GoogleAuthProvider();
 
   let isRegister = false;
 
-  window.toggleRegister = function() {
+  // ── Wire up buttons via addEventListener (safe with type="module") ──────────
+  document.getElementById('loginBtn').addEventListener('click', submitLogin);
+  document.getElementById('googleBtn').addEventListener('click', googleLogin);
+  document.getElementById('toggleBtn').addEventListener('click', (e) => { e.preventDefault(); toggleRegister(); });
+  document.getElementById('password').addEventListener('keydown', (e) => { if (e.key === 'Enter') submitLogin(); });
+
+  function toggleRegister() {
     isRegister = !isRegister;
     document.querySelector('.subtitle').textContent = isRegister ? 'Create a new account' : 'Sign in to access your dashboard';
-    document.getElementById('loginBtn').textContent = isRegister ? 'Create Account' : 'Sign In';
-    document.querySelector('.toggle-link').innerHTML = isRegister
-      ? 'Already have an account? <a onclick="toggleRegister()">Sign in</a>'
-      : 'Don\'t have an account? <a onclick="toggleRegister()">Sign up</a>';
+    document.getElementById('loginBtn').textContent  = isRegister ? 'Create Account' : 'Sign In';
+    document.getElementById('toggleBtn').textContent = isRegister ? 'Sign in' : 'Sign up';
+    document.getElementById('toggleLink').firstChild.textContent = isRegister
+      ? 'Already have an account? ' : "Don't have an account? ";
     clearError();
-  };
+  }
 
-  window.submitLogin = async function() {
-    const email = document.getElementById('email').value.trim();
+  async function submitLogin() {
+    const email    = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
-    const btn = document.getElementById('loginBtn');
+    const btn      = document.getElementById('loginBtn');
     if (!email || !password) { showError('Please enter email and password.'); return; }
 
-    btn.disabled = true;
+    btn.disabled    = true;
     btn.textContent = isRegister ? 'Creating...' : 'Signing in...';
     clearError();
 
@@ -226,12 +240,12 @@
     } catch (err) {
       showError(friendlyError(err.code));
     } finally {
-      btn.disabled = false;
+      btn.disabled    = false;
       btn.textContent = isRegister ? 'Create Account' : 'Sign In';
     }
-  };
+  }
 
-  window.googleLogin = async function() {
+  async function googleLogin() {
     clearError();
     try {
       const cred = await signInWithPopup(auth, provider);
@@ -239,11 +253,11 @@
     } catch (err) {
       if (err.code !== 'auth/popup-closed-by-user') showError(friendlyError(err.code));
     }
-  };
+  }
 
   async function sendTokenToServer(user) {
     const idToken = await user.getIdToken();
-    const res = await fetch('/api/auth/login', {
+    const res  = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ idToken })
@@ -258,7 +272,7 @@
 
   function showError(msg) {
     const el = document.getElementById('errorMsg');
-    el.textContent = msg;
+    el.textContent  = msg;
     el.style.display = 'block';
   }
   function clearError() {
@@ -266,14 +280,14 @@
   }
   function friendlyError(code) {
     const map = {
-      'auth/user-not-found': 'No account found with this email.',
-      'auth/wrong-password': 'Incorrect password.',
-      'auth/invalid-email': 'Invalid email address.',
-      'auth/email-already-in-use': 'An account with this email already exists.',
-      'auth/weak-password': 'Password should be at least 6 characters.',
-      'auth/invalid-credential': 'Invalid email or password.',
-      'auth/too-many-requests': 'Too many attempts. Please try again later.',
-      'auth/network-request-failed': 'Network error. Check your connection.',
+      'auth/user-not-found':        'No account found with this email.',
+      'auth/wrong-password':        'Incorrect password.',
+      'auth/invalid-email':         'Invalid email address.',
+      'auth/email-already-in-use':  'An account with this email already exists.',
+      'auth/weak-password':         'Password should be at least 6 characters.',
+      'auth/invalid-credential':    'Invalid email or password.',
+      'auth/too-many-requests':     'Too many attempts. Please try again later.',
+      'auth/network-request-failed':'Network error. Check your connection.',
     };
     return map[code] || 'Something went wrong. Please try again.';
   }

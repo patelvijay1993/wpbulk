@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WhatsApp Bulk Sender</title>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --green: #25D366;
+    --green-dark: #1ebe5d;
+    --green-light: #e1f5ee;
+    --green-text: #0F6E56;
+    --bg: #f0f2f5;
+    --surface: #ffffff;
+    --surface2: #f7f8fa;
+    --border: #e5e7eb;
+    --text: #111827;
+    --text2: #6b7280;
+    --text3: #9ca3af;
+    --red: #ef4444;
+    --red-light: #fee2e2;
+    --blue: #3b82f6;
+    --blue-light: #eff6ff;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── TOP NAV ── */
+  .navbar {
+    background: var(--green);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  .navbar-logo {
+    width: 32px; height: 32px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .navbar-logo svg { width: 20px; height: 20px; fill: white; }
+  .navbar h1 { font-size: 18px; font-weight: 600; color: white; }
+  .navbar-status { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .status-dot { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,0.4); transition: background 0.3s; }
+  .status-dot.ready { background: white; box-shadow: 0 0 6px white; }
+  .status-dot.qr { background: #fbbf24; }
+  .status-dot.error { background: #f87171; }
+  .status-text { font-size: 13px; color: rgba(255,255,255,0.85); }
+
+  /* ── LAYOUT ── */
+  .container { max-width: 1100px; margin: 0 auto; padding: 24px 16px; display: grid; grid-template-columns: 340px 1fr; gap: 20px; }
+  @media(max-width:780px) { .container { grid-template-columns: 1fr; } }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .card:last-child { margin-bottom: 0; }
+  .card-title { font-size: 13px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
+  .card-title svg { width: 14px; height: 14px; }
+
+  /* ── FORM ELEMENTS ── */
+  label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 5px; font-weight: 500; }
+  input[type=text], input[type=number], textarea, select {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 9px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--text);
+    background: var(--surface2);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+    resize: vertical;
+  }
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(37,211,102,0.12);
+    background: white;
+  }
+  .field { margin-bottom: 12px; }
+  .field:last-child { margin-bottom: 0; }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 9px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .btn-green { background: var(--green); color: white; }
+  .btn-green:hover { background: var(--green-dark); }
+  .btn-green:disabled { background: #9FE1CB; cursor: not-allowed; }
+  .btn-outline { background: white; color: var(--text); border: 1px solid var(--border); }
+  .btn-outline:hover { background: var(--surface2); }
+  .btn-red { background: #fee2e2; color: var(--red); border: 1px solid #fecaca; }
+  .btn-red:hover { background: #fecaca; }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .btn-block { width: 100%; }
+  .btn-icon { padding: 6px; background: none; border: none; cursor: pointer; color: var(--text3); border-radius: 6px; transition: all 0.15s; }
+  .btn-icon:hover { background: var(--surface2); color: var(--red); }
+
+  /* ── QR CODE ── */
+  .qr-wrap {
+    text-align: center;
+    padding: 16px;
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    border: 1px dashed var(--border);
+  }
+  .qr-wrap img { width: 180px; height: 180px; border-radius: 8px; }
+  .qr-placeholder { width: 180px; height: 180px; display: flex; align-items: center; justify-content: center; margin: 0 auto; background: var(--border); border-radius: 8px; color: var(--text3); font-size: 13px; }
+  .qr-steps { text-align: left; margin-top: 12px; font-size: 12px; color: var(--text2); line-height: 1.8; }
+
+  /* ── CONTACTS TABLE ── */
+  .table-wrap { overflow-x: auto; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: var(--surface2); padding: 10px 12px; text-align: left; color: var(--text2); font-weight: 600; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  td { padding: 9px 12px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fafafa; }
+  .mono { font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12px; }
+
+  /* ── BADGES ── */
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge-pending { background: #f3f4f6; color: var(--text2); }
+  .badge-sent { background: var(--green-light); color: var(--green-text); }
+  .badge-failed { background: var(--red-light); color: var(--red); }
+
+  /* ── TABS ── */
+  .tabs { display: flex; gap: 4px; background: var(--surface2); padding: 4px; border-radius: var(--radius-sm); margin-bottom: 14px; }
+  .tab { flex: 1; text-align: center; padding: 7px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; background: none; color: var(--text2); transition: all 0.15s; font-family: inherit; }
+  .tab.active { background: white; color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+
+  /* ── PROGRESS ── */
+  .progress-bar-bg { background: var(--surface2); border-radius: 20px; height: 8px; overflow: hidden; margin: 8px 0; }
+  .progress-bar-fill { height: 100%; background: var(--green); border-radius: 20px; width: 0%; transition: width 0.4s ease; }
+
+  /* ── STATS ── */
+  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 14px 0; }
+  .stat-card { background: var(--surface2); border-radius: var(--radius-sm); padding: 12px; text-align: center; }
+  .stat-num { font-size: 24px; font-weight: 700; color: var(--text); }
+  .stat-num.green { color: var(--green-text); }
+  .stat-num.red { color: var(--red); }
+  .stat-label { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  /* ── LOG ── */
+  .log { background: #0f172a; border-radius: var(--radius-sm); padding: 12px; max-height: 240px; overflow-y: auto; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12px; line-height: 1.7; }
+  .log-line { padding: 1px 0; }
+  .log-time { color: #475569; margin-right: 6px; }
+  .log-ok { color: #4ade80; }
+  .log-fail { color: #f87171; }
+  .log-info { color: #60a5fa; }
+  .log-warn { color: #fbbf24; }
+
+  /* ── MESSAGE PREVIEW ── */
+  .msg-preview {
+    background: var(--green-light);
+    border-radius: 12px 12px 12px 0;
+    padding: 10px 14px;
+    font-size: 14px;
+    color: #1a3a2a;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    margin-top: 10px;
+    position: relative;
+  }
+  .msg-preview::before {
+    content: 'Preview';
+    display: block;
+    font-size: 11px;
+    color: var(--green-text);
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  /* ── DELAY ── */
+  .delay-row { display: flex; align-items: center; gap: 10px; }
+  .delay-row input[type=range] { flex: 1; accent-color: var(--green); }
+  .delay-val { font-size: 14px; font-weight: 600; min-width: 32px; color: var(--text); }
+
+  /* ── EMPTY STATE ── */
+  .empty { text-align: center; padding: 32px 16px; color: var(--text3); font-size: 13px; }
+  .empty svg { width: 40px; height: 40px; margin-bottom: 8px; opacity: 0.4; }
+
+  /* ── ALERT ── */
+  .alert { padding: 10px 14px; border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 12px; }
+  .alert-info { background: var(--blue-light); color: #1d4ed8; border: 1px solid #bfdbfe; }
+  .alert-success { background: var(--green-light); color: var(--green-text); border: 1px solid #86efac; }
+  .alert-danger { background: var(--red-light); color: var(--red); border: 1px solid #fecaca; }
+
+  /* ── CONNECT BTN ── */
+  .connect-area { text-align: center; padding: 8px 0; }
+
+  /* scrollbar */
+  .log::-webkit-scrollbar { width: 6px; }
+  .log::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="navbar-logo">
+    <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+  </div>
+  <h1>WhatsApp Bulk Sender</h1>
+  <div class="navbar-status">
+    <div class="status-dot" id="statusDot"></div>
+    <span class="status-text" id="statusText">Not connected</span>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="container">
+
+  <!-- LEFT COLUMN -->
+  <div>
+
+    <!-- WhatsApp Connection -->
+    <div class="card">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+        WhatsApp Connection
+      </div>
+
+      <div id="qrSection" style="display:none">
+        <div class="qr-wrap">
+          <img id="qrImg" src="" alt="QR Code">
+        </div>
+        <div class="qr-steps">
+          <strong>Steps to connect:</strong><br>
+          1. Open WhatsApp on your phone<br>
+          2. Tap <strong>Settings → Linked Devices</strong><br>
+          3. Tap <strong>Link a Device</strong><br>
+          4. Scan the QR code above
+        </div>
+      </div>
+
+      <div id="readySection" style="display:none">
+        <div class="alert alert-success">✓ WhatsApp connected successfully!</div>
+        <button class="btn btn-outline btn-sm" onclick="disconnect()">Disconnect</button>
+      </div>
+
+      <div id="disconnectedSection" class="connect-area">
+        <div class="alert alert-info" style="text-align:left;margin-bottom:12px">Click connect to link your WhatsApp account via QR code.</div>
+        <button class="btn btn-green btn-block" onclick="connectWA()">Connect WhatsApp</button>
+      </div>
+    </div>
+
+    <!-- Message Template -->
+    <div class="card">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+        Message Template
+      </div>
+      <div class="field">
+        <label>Message (use {name} for personalization)</label>
+        <textarea id="msgTemplate" rows="5" placeholder="Hello {name}! 👋&#10;&#10;Your message here...">Hello {name}! 👋
+
+This is an important message from our team.
+Please reply if you have any questions.
+
+Thank you! 🙏</textarea>
+      </div>
+      <div class="msg-preview" id="msgPreview"></div>
+    </div>
+
+    <!-- Delay Setting -->
+    <div class="card">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>
+        Message Delay
+      </div>
+      <label>Delay between messages (avoid ban)</label>
+      <div class="delay-row">
+        <input type="range" min="1" max="15" value="3" id="delaySlider" step="1" oninput="document.getElementById('delayVal').textContent=this.value+'s'">
+        <span class="delay-val" id="delayVal">3s</span>
+      </div>
+      <div style="font-size:12px;color:var(--text3);margin-top:6px">Recommended: 3–5 seconds. Lower = faster but higher ban risk.</div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT COLUMN -->
+  <div>
+
+    <!-- Contacts -->
+    <div class="card">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+        Contacts
+        <span id="contactCount" style="margin-left:auto;background:var(--green-light);color:var(--green-text);font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600">0 contacts</span>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('manual',this)">Manual Entry</button>
+        <button class="tab" onclick="switchTab('csv',this)">Paste CSV</button>
+        <button class="tab" onclick="switchTab('upload',this)">Upload CSV</button>
+      </div>
+
+      <!-- Manual -->
+      <div id="tab-manual">
+        <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:12px">
+          <div class="field" style="flex:1;margin-bottom:0">
+            <label>Name</label>
+            <input type="text" id="newName" placeholder="John Doe" onkeydown="if(event.key==='Enter')addContact()">
+          </div>
+          <div class="field" style="flex:1;margin-bottom:0">
+            <label>Number (with country code)</label>
+            <input type="text" id="newNumber" placeholder="919876543210" onkeydown="if(event.key==='Enter')addContact()">
+          </div>
+          <button class="btn btn-green" onclick="addContact()">Add</button>
+        </div>
+      </div>
+
+      <!-- CSV Paste -->
+      <div id="tab-csv" style="display:none">
+        <div class="field">
+          <label>Paste CSV (one per line: name, number)</label>
+          <textarea id="csvInput" rows="4" placeholder="John Doe, 919876543210&#10;Jane Smith, 917000000001&#10;Raj Patel, 919000000002"></textarea>
+        </div>
+        <button class="btn btn-outline" onclick="importCSV()">Import Contacts</button>
+      </div>
+
+      <!-- Upload CSV -->
+      <div id="tab-upload" style="display:none">
+        <div class="field">
+          <label>Upload CSV file (columns: name, number)</label>
+          <input type="file" id="csvFile" accept=".csv" onchange="uploadCSV(this)">
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-top:4px">Format: name,number (no header row needed)</div>
+      </div>
+
+      <!-- Contacts Table -->
+      <div style="margin-top:14px">
+        <div id="emptyState" class="empty">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+          <div>No contacts yet. Add contacts above.</div>
+        </div>
+        <div id="tableWrap" class="table-wrap" style="display:none">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Number</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="contactsBody"></tbody>
+          </table>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;justify-content:flex-end" id="tableActions" style="display:none">
+          <button class="btn btn-outline btn-sm" onclick="clearContacts()">Clear all</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Send Panel -->
+    <div class="card">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+        Send Messages
+      </div>
+
+      <button class="btn btn-green btn-block" id="sendBtn" onclick="startSend()" style="font-size:15px;padding:12px">
+        Send to All Contacts
+      </button>
+
+      <!-- Progress -->
+      <div id="progressSection" style="display:none;margin-top:16px">
+        <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text2);margin-bottom:4px">
+          <span id="progressLabel">Sending...</span>
+          <span id="progressPct">0%</span>
+        </div>
+        <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
+
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-num green" id="statSent">0</div><div class="stat-label">Sent</div></div>
+          <div class="stat-card"><div class="stat-num red" id="statFailed">0</div><div class="stat-label">Failed</div></div>
+          <div class="stat-card"><div class="stat-num" id="statTotal">0</div><div class="stat-label">Total</div></div>
+        </div>
+      </div>
+
+      <!-- Log -->
+      <div id="logSection" style="display:none;margin-top:14px">
+        <div style="font-size:12px;color:var(--text2);margin-bottom:6px;font-weight:600">Activity Log</div>
+        <div class="log" id="logBox"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const socket = io();
+let contacts = [];
+let sending = false;
+
+// ── SOCKET EVENTS ────────────────────────────────────────────────────────────
+socket.on('status', ({ status, message }) => {
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  dot.className = 'status-dot ' + status;
+  txt.textContent = message;
+
+  document.getElementById('disconnectedSection').style.display = status === 'disconnected' ? 'block' : 'none';
+  document.getElementById('qrSection').style.display = status === 'qr' ? 'block' : 'none';
+  document.getElementById('readySection').style.display = status === 'ready' ? 'block' : 'none';
+});
+
+socket.on('qr', (dataURL) => {
+  document.getElementById('qrImg').src = dataURL;
+});
+
+socket.on('bulk_start', ({ total }) => {
+  document.getElementById('progressSection').style.display = 'block';
+  document.getElementById('logSection').style.display = 'block';
+  document.getElementById('progressLabel').textContent = `Sending 0 of ${total}`;
+  document.getElementById('statTotal').textContent = total;
+  addLog(`Starting send to ${total} contacts...`, 'info');
+});
+
+socket.on('bulk_progress', ({ index, total, name, number, status, reason, sent, failed }) => {
+  const pct = Math.round((index / total) * 100);
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressPct').textContent = pct + '%';
+  document.getElementById('progressLabel').textContent = `Sending ${index} of ${total}`;
+  document.getElementById('statSent').textContent = sent;
+  document.getElementById('statFailed').textContent = failed;
+  document.getElementById('statTotal').textContent = index;
+
+  const c = contacts.find(x => x.number === number);
+  if (c) { c.status = status; renderContacts(); }
+
+  if (status === 'sent') addLog(`✓ Sent to ${name} (${number})`, 'ok');
+  else addLog(`✗ Failed: ${name} — ${reason || 'unknown error'}`, 'fail');
+});
+
+socket.on('bulk_done', ({ sent, failed, total }) => {
+  document.getElementById('progressLabel').textContent = 'Complete!';
+  document.getElementById('progressFill').style.width = '100%';
+  addLog(`─── Done: ${sent} sent, ${failed} failed, ${total} total ───`, 'warn');
+  const btn = document.getElementById('sendBtn');
+  btn.disabled = false;
+  btn.textContent = 'Send Again';
+  sending = false;
+});
+
+// ── WHATSAPP CONNECT ─────────────────────────────────────────────────────────
+async function connectWA() {
+  await fetch('/api/connect', { method: 'POST' });
+}
+
+async function disconnect() {
+  await fetch('/api/disconnect', { method: 'POST' });
+}
+
+// ── CONTACTS ─────────────────────────────────────────────────────────────────
+function addContact() {
+  const name = document.getElementById('newName').value.trim();
+  const number = document.getElementById('newNumber').value.trim().replace(/\D/g, '');
+  if (!name || !number) { alert('Please enter both name and number'); return; }
+  contacts.push({ name, number, status: 'pending' });
+  document.getElementById('newName').value = '';
+  document.getElementById('newNumber').value = '';
+  document.getElementById('newName').focus();
+  renderContacts();
+}
+
+function removeContact(i) {
+  contacts.splice(i, 1);
+  renderContacts();
+}
+
+function clearContacts() {
+  if (confirm('Clear all contacts?')) { contacts = []; renderContacts(); }
+}
+
+function renderContacts() {
+  const body = document.getElementById('contactsBody');
+  const empty = document.getElementById('emptyState');
+  const tableWrap = document.getElementById('tableWrap');
+  const tableActions = document.getElementById('tableActions');
+  const count = document.getElementById('contactCount');
+
+  count.textContent = contacts.length + ' contact' + (contacts.length !== 1 ? 's' : '');
+
+  if (contacts.length === 0) {
+    empty.style.display = 'block';
+    tableWrap.style.display = 'none';
+    if (tableActions) tableActions.style.display = 'none';
+    return;
+  }
+  empty.style.display = 'none';
+  tableWrap.style.display = 'block';
+  if (tableActions) tableActions.style.display = 'flex';
+
+  body.innerHTML = contacts.map((c, i) => `
+    <tr>
+      <td style="color:var(--text3)">${i + 1}</td>
+      <td>${c.name}</td>
+      <td class="mono">${c.number}</td>
+      <td><span class="badge badge-${c.status}">${c.status}</span></td>
+      <td><button class="btn-icon" onclick="removeContact(${i})" title="Remove">✕</button></td>
+    </tr>`).join('');
+}
+
+// ── CSV IMPORT ───────────────────────────────────────────────────────────────
+function importCSV() {
+  const csv = document.getElementById('csvInput').value.trim();
+  const lines = csv.split('\n').filter(l => l.trim());
+  let added = 0;
+  lines.forEach(line => {
+    const parts = line.split(',');
+    if (parts.length >= 2) {
+      const name = parts[0].trim();
+      const number = parts[1].trim().replace(/\D/g, '');
+      if (name && number) { contacts.push({ name, number, status: 'pending' }); added++; }
+    }
+  });
+  document.getElementById('csvInput').value = '';
+  renderContacts();
+  addLog(`Imported ${added} contacts from CSV`, 'info');
+}
+
+function uploadCSV(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const lines = e.target.result.split('\n').filter(l => l.trim());
+    let added = 0;
+    lines.forEach(line => {
+      const parts = line.split(',');
+      if (parts.length >= 2) {
+        const name = parts[0].trim();
+        const number = parts[1].trim().replace(/\D/g, '');
+        if (name && number) { contacts.push({ name, number, status: 'pending' }); added++; }
+      }
+    });
+    renderContacts();
+    addLog(`Imported ${added} contacts from file: ${file.name}`, 'info');
+    document.getElementById('logSection').style.display = 'block';
+  };
+  reader.readAsText(file);
+}
+
+// ── TABS ─────────────────────────────────────────────────────────────────────
+function switchTab(tab, el) {
+  ['manual', 'csv', 'upload'].forEach(t => document.getElementById('tab-' + t).style.display = 'none');
+  document.getElementById('tab-' + tab).style.display = 'block';
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ── MESSAGE PREVIEW ───────────────────────────────────────────────────────────
+function updatePreview() {
+  const msg = document.getElementById('msgTemplate').value;
+  document.getElementById('msgPreview').textContent = msg.replace(/\{name\}/gi, 'Sample Contact');
+}
+document.getElementById('msgTemplate').addEventListener('input', updatePreview);
+updatePreview();
+
+// ── SEND ─────────────────────────────────────────────────────────────────────
+async function startSend() {
+  if (sending) return;
+  if (contacts.length === 0) { alert('Please add at least one contact'); return; }
+
+  const message = document.getElementById('msgTemplate').value.trim();
+  if (!message) { alert('Please write a message'); return; }
+
+  contacts.forEach(c => c.status = 'pending');
+  renderContacts();
+
+  sending = true;
+  const btn = document.getElementById('sendBtn');
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+
+  document.getElementById('statSent').textContent = '0';
+  document.getElementById('statFailed').textContent = '0';
+  document.getElementById('statTotal').textContent = '0';
+
+  const delay = parseInt(document.getElementById('delaySlider').value);
+
+  const res = await fetch('/api/send', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ contacts, message, delay })
+  });
+
+  const data = await res.json();
+  if (!data.success) {
+    alert('Error: ' + data.message);
+    btn.disabled = false;
+    btn.textContent = 'Send to All Contacts';
+    sending = false;
+  }
+}
+
+// ── LOG ───────────────────────────────────────────────────────────────────────
+function addLog(msg, type = 'info') {
+  const box = document.getElementById('logBox');
+  const cls = type === 'ok' ? 'log-ok' : type === 'fail' ? 'log-fail' : type === 'warn' ? 'log-warn' : 'log-info';
+  const time = new Date().toLocaleTimeString();
+  box.innerHTML += `<div class="log-line"><span class="log-time">${time}</span><span class="${cls}">${msg}</span></div>`;
+  box.scrollTop = box.scrollHeight;
+}
+
+renderContacts();
+</script>
+</body>
+</html>

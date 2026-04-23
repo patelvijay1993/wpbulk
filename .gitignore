@@ -1,6 +1,9 @@
 # Dependencies
 node_modules/
 
+# Uploaded attachments (temp, auto-deleted after send)
+uploads/
+
 # WhatsApp session data
 .wwebjs_auth/
 .wwebjs_cache/

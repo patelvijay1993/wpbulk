@@ -38,10 +38,10 @@
   /* ── TOP NAV ── */
   .navbar {
     background: var(--green);
-    padding: 14px 24px;
+    padding: 12px 16px;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     position: sticky;
     top: 0;
     z-index: 100;
@@ -49,48 +49,55 @@
   }
   .navbar-logo {
     width: 32px; height: 32px;
+    flex-shrink: 0;
     background: rgba(255,255,255,0.2);
     border-radius: 8px;
     display: flex; align-items: center; justify-content: center;
   }
   .navbar-logo svg { width: 20px; height: 20px; fill: white; }
-  .navbar h1 { font-size: 18px; font-weight: 600; color: white; }
-  .navbar-status { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .navbar h1 { font-size: 16px; font-weight: 600; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .navbar-status { margin-left: auto; display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
   .btn-logout {
     background: rgba(255,255,255,0.15);
     color: white;
     border: 1px solid rgba(255,255,255,0.3);
     border-radius: 6px;
-    padding: 5px 12px;
+    padding: 5px 10px;
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;
     font-family: inherit;
     transition: background 0.15s;
-    margin-left: 12px;
+    flex-shrink: 0;
   }
   .btn-logout:hover { background: rgba(255,255,255,0.25); }
-  .status-dot { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,0.4); transition: background 0.3s; }
+  .status-dot { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,0.4); transition: background 0.3s; flex-shrink: 0; }
   .status-dot.ready { background: white; box-shadow: 0 0 6px white; }
   .status-dot.qr { background: #fbbf24; }
   .status-dot.error { background: #f87171; }
-  .status-text { font-size: 13px; color: rgba(255,255,255,0.85); }
+  .status-text { font-size: 12px; color: rgba(255,255,255,0.85); white-space: nowrap; }
+  @media(max-width:480px) {
+    .navbar h1 { font-size: 14px; }
+    .status-text { display: none; }
+  }
 
   /* ── LAYOUT ── */
-  .container { max-width: 1100px; margin: 0 auto; padding: 24px 16px; display: grid; grid-template-columns: 340px 1fr; gap: 20px; }
-  @media(max-width:780px) { .container { grid-template-columns: 1fr; } }
+  .container { max-width: 1100px; margin: 0 auto; padding: 16px 12px; display: grid; grid-template-columns: 340px 1fr; gap: 16px; }
+  @media(max-width:860px) { .container { grid-template-columns: 1fr; } }
+  @media(max-width:480px) { .container { padding: 12px 8px; gap: 12px; } }
 
   /* ── CARDS ── */
   .card {
     background: var(--surface);
     border-radius: var(--radius);
     border: 1px solid var(--border);
-    padding: 20px;
-    margin-bottom: 16px;
+    padding: 16px;
+    margin-bottom: 14px;
   }
+  @media(max-width:480px) { .card { padding: 14px 12px; border-radius: 10px; } }
   .card:last-child { margin-bottom: 0; }
-  .card-title { font-size: 13px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
-  .card-title svg { width: 14px; height: 14px; }
+  .card-title { font-size: 13px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 14px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .card-title svg { width: 14px; height: 14px; flex-shrink: 0; }
 
   /* ── FORM ELEMENTS ── */
   label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 5px; font-weight: 500; }
@@ -152,10 +159,10 @@
   .qr-steps { text-align: left; margin-top: 12px; font-size: 12px; color: var(--text2); line-height: 1.8; }
 
   /* ── CONTACTS TABLE ── */
-  .table-wrap { overflow-x: auto; border-radius: var(--radius-sm); border: 1px solid var(--border); }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th { background: var(--surface2); padding: 10px 12px; text-align: left; color: var(--text2); font-weight: 600; border-bottom: 1px solid var(--border); white-space: nowrap; }
-  td { padding: 9px 12px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
+  .table-wrap { overflow-x: auto; border-radius: var(--radius-sm); border: 1px solid var(--border); -webkit-overflow-scrolling: touch; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 280px; }
+  th { background: var(--surface2); padding: 9px 10px; text-align: left; color: var(--text2); font-weight: 600; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  td { padding: 8px 10px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
   tr:last-child td { border-bottom: none; }
   tr:hover td { background: #fafafa; }
   .mono { font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12px; }
@@ -176,9 +183,9 @@
   .progress-bar-fill { height: 100%; background: var(--green); border-radius: 20px; width: 0%; transition: width 0.4s ease; }
 
   /* ── STATS ── */
-  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 14px 0; }
-  .stat-card { background: var(--surface2); border-radius: var(--radius-sm); padding: 12px; text-align: center; }
-  .stat-num { font-size: 24px; font-weight: 700; color: var(--text); }
+  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0; }
+  .stat-card { background: var(--surface2); border-radius: var(--radius-sm); padding: 10px 8px; text-align: center; }
+  .stat-num { font-size: 22px; font-weight: 700; color: var(--text); }
   .stat-num.green { color: var(--green-text); }
   .stat-num.red { color: var(--red); }
   .stat-label { font-size: 11px; color: var(--text3); margin-top: 2px; }
@@ -192,31 +199,81 @@
   .log-info { color: #60a5fa; }
   .log-warn { color: #fbbf24; }
 
+  /* ── MESSAGE TEMPLATE ITEM ── */
+  .tpl-item {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    margin-bottom: 10px;
+    background: var(--surface2);
+    position: relative;
+  }
+  .tpl-item:last-child { margin-bottom: 0; }
+  .tpl-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .tpl-label { font-size: 12px; font-weight: 600; color: var(--text2); }
+  .tpl-item textarea {
+    width: 100%; border: 1px solid var(--border); border-radius: 6px;
+    padding: 8px 10px; font-size: 13px; font-family: inherit;
+    color: var(--text); background: white; resize: vertical;
+    outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .tpl-item textarea:focus {
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(37,211,102,0.12);
+  }
+
+  /* ── ATTACHMENT ── */
+  .attach-zone {
+    margin-top: 10px;
+    border: 1.5px dashed var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    background: white;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .attach-zone:hover, .attach-zone.drag-over { border-color: var(--green); background: var(--green-light); }
+  .attach-zone input[type=file] { display: none; }
+  .attach-zone-icon { font-size: 18px; flex-shrink: 0; }
+  .attach-zone-text { font-size: 12px; color: var(--text2); }
+  .attach-zone-text strong { color: var(--green-text); }
+  .attach-list { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .attach-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: white; border: 1px solid var(--border);
+    border-radius: 20px; padding: 3px 8px 3px 10px;
+    font-size: 12px; color: var(--text);
+  }
+  .attach-chip-remove {
+    background: none; border: none; cursor: pointer;
+    color: var(--text3); font-size: 14px; line-height: 1;
+    padding: 0 2px; border-radius: 50%;
+    transition: color 0.15s;
+  }
+  .attach-chip-remove:hover { color: var(--red); }
+  .attach-thumb {
+    width: 14px; height: 14px; object-fit: cover;
+    border-radius: 3px; flex-shrink: 0;
+  }
   /* ── MESSAGE PREVIEW ── */
   .msg-preview {
     background: var(--green-light);
-    border-radius: 12px 12px 12px 0;
-    padding: 10px 14px;
-    font-size: 14px;
+    border-radius: 0 10px 10px 10px;
+    padding: 8px 12px;
+    font-size: 13px;
     color: #1a3a2a;
     line-height: 1.6;
     white-space: pre-wrap;
-    margin-top: 10px;
-    position: relative;
+    margin-top: 8px;
+    border-left: 3px solid var(--green);
   }
-  .msg-preview::before {
-    content: 'Preview';
-    display: block;
-    font-size: 11px;
-    color: var(--green-text);
-    font-weight: 600;
-    margin-bottom: 4px;
-  }
+  .msg-preview-label { font-size: 10px; font-weight: 700; color: var(--green-text); letter-spacing: 0.05em; margin-bottom: 3px; }
 
   /* ── DELAY ── */
-  .delay-row { display: flex; align-items: center; gap: 10px; }
-  .delay-row input[type=range] { flex: 1; accent-color: var(--green); }
-  .delay-val { font-size: 14px; font-weight: 600; min-width: 32px; color: var(--text); }
+  .delay-row { display: flex; align-items: center; gap: 8px; }
+  .delay-row input[type=range] { flex: 1; min-width: 0; accent-color: var(--green); }
+  .delay-val { font-size: 13px; font-weight: 700; width: 30px; text-align: right; color: var(--green-text); flex-shrink: 0; }
 
   /* ── EMPTY STATE ── */
   .empty { text-align: center; padding: 32px 16px; color: var(--text3); font-size: 13px; }
@@ -230,6 +287,62 @@
 
   /* ── CONNECT BTN ── */
   .connect-area { text-align: center; padding: 8px 0; }
+
+  /* ── MANUAL ADD ROW ── */
+  .manual-add-row { display: flex; gap: 8px; align-items: flex-end; margin-bottom: 12px; }
+  .manual-add-btn { white-space: nowrap; flex-shrink: 0; }
+  @media(max-width:520px) {
+    .manual-add-row { flex-wrap: wrap; }
+    .manual-add-row .field { flex: 1 1 calc(50% - 4px); min-width: 120px; }
+    .manual-add-btn { width: 100%; margin-top: 4px; }
+  }
+
+  /* ── DELAY SLIDERS ── */
+  .delay-range-row { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; }
+  .delay-sep { color: var(--text3); font-size: 16px; text-align: center; padding-top: 18px; }
+  .delay-block { min-width: 0; }
+  .delay-block-label { font-size: 11px; font-weight: 600; color: var(--text3); margin-bottom: 4px; letter-spacing: 0.05em; }
+  @media(max-width:400px) {
+    .delay-range-row { grid-template-columns: 1fr; }
+    .delay-sep { display: none; }
+  }
+
+  /* ── QR responsive ── */
+  @media(max-width:400px) {
+    .qr-wrap img { width: 150px; height: 150px; }
+    .qr-loading { width: 150px; height: 150px; }
+  }
+
+  /* ── LOG ── */
+  @media(max-width:480px) {
+    .log { font-size: 11px; max-height: 180px; }
+  }
+
+  /* ── TABS ── */
+  @media(max-width:360px) {
+    .tab { font-size: 11px; padding: 6px 4px; }
+  }
+
+  /* ── LOADING SPINNER ── */
+  .qr-loading {
+    width: 180px; height: 180px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    margin: 0 auto;
+    background: var(--surface2);
+    border-radius: 8px;
+    gap: 12px;
+    color: var(--text2);
+    font-size: 13px;
+  }
+  .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--green);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
   /* scrollbar */
   .log::-webkit-scrollbar { width: 6px; }
@@ -264,6 +377,17 @@
         WhatsApp Connection
       </div>
 
+      <!-- Loading: waiting for QR -->
+      <div id="loadingSection" style="display:none">
+        <div class="qr-wrap">
+          <div class="qr-loading">
+            <div class="spinner"></div>
+            <span>Generating QR code…</span>
+          </div>
+        </div>
+        <div class="qr-steps" style="margin-top:12px;color:var(--text3)">Starting WhatsApp, please wait…</div>
+      </div>
+
       <div id="qrSection" style="display:none">
         <div class="qr-wrap">
           <img id="qrImg" src="" alt="QR Code">
@@ -284,26 +408,24 @@
 
       <div id="disconnectedSection" class="connect-area">
         <div class="alert alert-info" style="text-align:left;margin-bottom:12px">Click connect to link your WhatsApp account via QR code.</div>
-        <button class="btn btn-green btn-block" onclick="connectWA()">Connect WhatsApp</button>
+        <button class="btn btn-green btn-block" id="connectBtn" onclick="connectWA()">Connect WhatsApp</button>
       </div>
     </div>
 
-    <!-- Message Template -->
+    <!-- Message Templates -->
     <div class="card">
       <div class="card-title">
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
-        Message Template
+        Message Templates
+        <span id="templateCount" style="margin-left:auto;background:var(--green-light);color:var(--green-text);font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600">1 template</span>
       </div>
-      <div class="field">
-        <label>Message (use {name} for personalization)</label>
-        <textarea id="msgTemplate" rows="5" placeholder="Hello {name}! 👋&#10;&#10;Your message here...">Hello {name}! 👋
-
-This is an important message from our team.
-Please reply if you have any questions.
-
-Thank you! 🙏</textarea>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:12px;background:var(--surface2);padding:8px 10px;border-radius:var(--radius-sm)">
+        Each contact gets a <strong>random template</strong>. Use <code style="background:var(--border);padding:1px 5px;border-radius:4px">{name}</code> for personalization.
       </div>
-      <div class="msg-preview" id="msgPreview"></div>
+      <div id="templateList"></div>
+      <button class="btn btn-outline btn-block" onclick="addTemplate()" style="margin-top:4px;border-style:dashed">
+        + Add Another Template
+      </button>
     </div>
 
     <!-- Delay Setting -->
@@ -312,12 +434,25 @@ Thank you! 🙏</textarea>
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>
         Message Delay
       </div>
-      <label>Delay between messages (avoid ban)</label>
-      <div class="delay-row">
-        <input type="range" min="1" max="15" value="3" id="delaySlider" step="1" oninput="document.getElementById('delayVal').textContent=this.value+'s'">
-        <span class="delay-val" id="delayVal">3s</span>
+      <label style="margin-bottom:10px">Random delay between messages (seconds)</label>
+      <div class="delay-range-row">
+        <div class="delay-block">
+          <div class="delay-block-label">MIN</div>
+          <div class="delay-row">
+            <input type="range" min="1" max="30" value="5" id="delayMin" step="1" oninput="syncDelay('min')">
+            <span class="delay-val" id="delayMinVal">5s</span>
+          </div>
+        </div>
+        <div class="delay-sep">–</div>
+        <div class="delay-block">
+          <div class="delay-block-label">MAX</div>
+          <div class="delay-row">
+            <input type="range" min="1" max="30" value="15" id="delayMax" step="1" oninput="syncDelay('max')">
+            <span class="delay-val" id="delayMaxVal">15s</span>
+          </div>
+        </div>
       </div>
-      <div style="font-size:12px;color:var(--text3);margin-top:6px">Recommended: 3–5 seconds. Lower = faster but higher ban risk.</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:8px">Each message waits a random time in this range. Helps avoid WhatsApp bans.</div>
     </div>
 
   </div>
@@ -342,7 +477,7 @@ Thank you! 🙏</textarea>
 
       <!-- Manual -->
       <div id="tab-manual">
-        <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:12px">
+        <div class="manual-add-row">
           <div class="field" style="flex:1;margin-bottom:0">
             <label>Name</label>
             <input type="text" id="newName" placeholder="John Doe" onkeydown="if(event.key==='Enter')addContact()">
@@ -351,7 +486,7 @@ Thank you! 🙏</textarea>
             <label>Number (with country code)</label>
             <input type="text" id="newNumber" placeholder="919876543210" onkeydown="if(event.key==='Enter')addContact()">
           </div>
-          <button class="btn btn-green" onclick="addContact()">Add</button>
+          <button class="btn btn-green manual-add-btn" onclick="addContact()">Add</button>
         </div>
       </div>
 
@@ -448,8 +583,15 @@ socket.on('status', ({ status, message }) => {
   txt.textContent = message;
 
   document.getElementById('disconnectedSection').style.display = status === 'disconnected' ? 'block' : 'none';
-  document.getElementById('qrSection').style.display = status === 'qr' ? 'block' : 'none';
-  document.getElementById('readySection').style.display = status === 'ready' ? 'block' : 'none';
+  document.getElementById('loadingSection').style.display  = status === 'loading' ? 'block' : 'none';
+  document.getElementById('qrSection').style.display       = status === 'qr' ? 'block' : 'none';
+  document.getElementById('readySection').style.display    = status === 'ready' ? 'block' : 'none';
+
+  if (status === 'disconnected' || status === 'error') {
+    const btn = document.getElementById('connectBtn');
+    btn.disabled = false;
+    btn.textContent = 'Connect WhatsApp';
+  }
 });
 
 socket.on('qr', (dataURL) => {
@@ -480,6 +622,10 @@ socket.on('bulk_progress', ({ index, total, name, number, status, reason, sent, 
   else addLog(`✗ Failed: ${name} — ${reason || 'unknown error'}`, 'fail');
 });
 
+socket.on('bulk_progress_delay', ({ seconds }) => {
+  addLog(`⏱ Waiting ${seconds}s before next message…`, 'info');
+});
+
 socket.on('bulk_done', ({ sent, failed, total }) => {
   document.getElementById('progressLabel').textContent = 'Complete!';
   document.getElementById('progressFill').style.width = '100%';
@@ -492,7 +638,16 @@ socket.on('bulk_done', ({ sent, failed, total }) => {
 
 // ── WHATSAPP CONNECT ─────────────────────────────────────────────────────────
 async function connectWA() {
+  const btn = document.getElementById('connectBtn');
+  btn.disabled = true;
+  btn.textContent = 'Connecting…';
+
+  // Show loading spinner immediately, hide disconnected section
+  document.getElementById('disconnectedSection').style.display = 'none';
+  document.getElementById('loadingSection').style.display = 'block';
+
   await fetch('/api/connect', { method: 'POST' });
+  // UI updates driven by socket 'status' events from here on
 }
 
 async function disconnect() {
@@ -597,21 +752,116 @@ function switchTab(tab, el) {
   el.classList.add('active');
 }
 
-// ── MESSAGE PREVIEW ───────────────────────────────────────────────────────────
-function updatePreview() {
-  const msg = document.getElementById('msgTemplate').value;
-  document.getElementById('msgPreview').textContent = msg.replace(/\{name\}/gi, 'Sample Contact');
+// ── MESSAGE TEMPLATES ─────────────────────────────────────────────────────────
+let templates = [
+  `Hello {name}! 👋\n\nThis is an important message from our team.\nPlease reply if you have any questions.\n\nThank you! 🙏`
+];
+// attachments[i] = FileList/array of File objects per template
+let attachments = [[]];
+
+function renderTemplates() {
+  const list = document.getElementById('templateList');
+  list.innerHTML = templates.map((t, i) => `
+    <div class="tpl-item" id="tpl-${i}">
+      <div class="tpl-header">
+        <span class="tpl-label">Template ${i + 1}</span>
+        ${templates.length > 1 ? `<button class="btn-icon" onclick="removeTemplate(${i})" title="Remove">✕</button>` : ''}
+      </div>
+      <textarea rows="4" oninput="updateTemplate(${i}, this.value)">${escHtml(t)}</textarea>
+      <div class="msg-preview-label" style="margin-top:8px">PREVIEW</div>
+      <div class="msg-preview">${escHtml(t.replace(/\{name\}/gi, 'Sample Contact'))}</div>
+
+      <!-- Attachment zone -->
+      <div class="attach-zone" onclick="document.getElementById('file-${i}').click()"
+           ondragover="event.preventDefault();this.classList.add('drag-over')"
+           ondragleave="this.classList.remove('drag-over')"
+           ondrop="dropFiles(event,${i})">
+        <input type="file" id="file-${i}" multiple accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx"
+               onchange="addFiles(${i}, this.files)">
+        <span class="attach-zone-icon">📎</span>
+        <div class="attach-zone-text"><strong>Attach files</strong> — click or drag &amp; drop<br>
+          <span style="color:var(--text3)">Images, videos, PDFs, docs (max 16 MB each)</span></div>
+      </div>
+      <div class="attach-list" id="attach-list-${i}"></div>
+    </div>`).join('');
+
+  // Restore existing attachment chips after re-render
+  templates.forEach((_, i) => renderAttachChips(i));
+
+  document.getElementById('templateCount').textContent =
+    templates.length + ' template' + (templates.length !== 1 ? 's' : '');
 }
-document.getElementById('msgTemplate').addEventListener('input', updatePreview);
-updatePreview();
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function updateTemplate(i, val) {
+  templates[i] = val;
+  const items = document.querySelectorAll('.tpl-item');
+  items[i].querySelector('.msg-preview').textContent = val.replace(/\{name\}/gi, 'Sample Contact');
+}
+
+function addTemplate() {
+  templates.push('Hello {name}! 👋\n\n');
+  attachments.push([]);
+  renderTemplates();
+  const items = document.querySelectorAll('.tpl-item');
+  items[items.length - 1].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  items[items.length - 1].querySelector('textarea').focus();
+}
+
+function removeTemplate(i) {
+  templates.splice(i, 1);
+  attachments.splice(i, 1);
+  renderTemplates();
+}
+
+// ── ATTACHMENTS ──────────────────────────────────────────────────────────────
+function addFiles(i, files) {
+  for (const f of files) attachments[i].push(f);
+  renderAttachChips(i);
+}
+
+function dropFiles(e, i) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  addFiles(i, e.dataTransfer.files);
+}
+
+function removeFile(tplIdx, fileIdx) {
+  attachments[tplIdx].splice(fileIdx, 1);
+  renderAttachChips(tplIdx);
+}
+
+function fileIcon(type) {
+  if (type.startsWith('image/')) return '🖼️';
+  if (type.startsWith('video/')) return '🎬';
+  if (type.startsWith('audio/')) return '🎵';
+  if (type.includes('pdf'))      return '📄';
+  return '📁';
+}
+
+function renderAttachChips(i) {
+  const list = document.getElementById('attach-list-' + i);
+  if (!list) return;
+  list.innerHTML = attachments[i].map((f, j) => `
+    <span class="attach-chip">
+      ${fileIcon(f.type)} ${escHtml(f.name.length > 24 ? f.name.slice(0,22)+'…' : f.name)}
+      <button class="attach-chip-remove" onclick="removeFile(${i},${j})" title="Remove">✕</button>
+    </span>`).join('');
+}
+
+renderTemplates();
 
 // ── SEND ─────────────────────────────────────────────────────────────────────
 async function startSend() {
   if (sending) return;
   if (contacts.length === 0) { alert('Please add at least one contact'); return; }
 
-  const message = document.getElementById('msgTemplate').value.trim();
-  if (!message) { alert('Please write a message'); return; }
+  const nonEmpty = templates.map(t => t.trim()).filter(Boolean);
+  if (!nonEmpty.length) { alert('Please write at least one message template'); return; }
+  const message = nonEmpty;
 
   contacts.forEach(c => c.status = 'pending');
   renderContacts();
@@ -625,13 +875,20 @@ async function startSend() {
   document.getElementById('statFailed').textContent = '0';
   document.getElementById('statTotal').textContent = '0';
 
-  const delay = parseInt(document.getElementById('delaySlider').value);
+  const delayMin = parseInt(document.getElementById('delayMin').value);
+  const delayMax = parseInt(document.getElementById('delayMax').value);
 
-  const res = await fetch('/api/send', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contacts, message, delay })
-  });
+  // Strip UI-only fields before sending
+  const contactsPayload = contacts.map(({ name, number }) => ({ name, number }));
+
+  const fd = new FormData();
+  fd.append('contacts', JSON.stringify(contactsPayload));
+  fd.append('message',  JSON.stringify(message));
+  fd.append('delayMin', delayMin);
+  fd.append('delayMax', delayMax);
+  attachments.forEach(fileArr => fileArr.forEach(f => fd.append('attachments', f)));
+
+  const res = await fetch('/api/send', { method: 'POST', body: fd });
 
   const data = await res.json();
   if (!data.success) {
@@ -652,6 +909,17 @@ function addLog(msg, type = 'info') {
 }
 
 renderContacts();
+
+function syncDelay(changed) {
+  const minEl = document.getElementById('delayMin');
+  const maxEl = document.getElementById('delayMax');
+  let min = parseInt(minEl.value);
+  let max = parseInt(maxEl.value);
+  if (changed === 'min' && min > max) { maxEl.value = min; max = min; }
+  if (changed === 'max' && max < min) { minEl.value = max; min = max; }
+  document.getElementById('delayMinVal').textContent = min + 's';
+  document.getElementById('delayMaxVal').textContent = max + 's';
+}
 
 async function logout() {
   await fetch('/api/auth/logout', { method: 'POST' });

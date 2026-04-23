@@ -6,6 +6,8 @@ const { Server } = require('socket.io');
 const path = require('path');
 const session = require('express-session');
 const admin = require('firebase-admin');
+const multer = require('multer');
+const fs = require('fs');
 
 // ─── FIREBASE ADMIN INIT ─────────────────────────────────────────────────────
 // Download your service account JSON from Firebase Console →
@@ -26,6 +28,7 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(session({
     secret: process.env.SESSION_SECRET || 'wpbulk-secret-change-me',
     resave: false,
@@ -127,6 +130,19 @@ app.post('/api/auth/logout', (req, res) => {
     req.session.destroy(() => res.json({ success: true }));
 });
 
+// ─── MULTER SETUP ────────────────────────────────────────────────────────────
+const upload = multer({
+    storage: multer.diskStorage({
+        destination: (req, file, cb) => {
+            const dir = path.join(__dirname, 'uploads');
+            if (!fs.existsSync(dir)) fs.mkdirSync(dir);
+            cb(null, dir);
+        },
+        filename: (req, file, cb) => cb(null, Date.now() + '_' + file.originalname)
+    }),
+    limits: { fileSize: 16 * 1024 * 1024 } // 16 MB
+});
+
 // ─── REST ENDPOINTS ──────────────────────────────────────────────────────────
 
 // Connect WhatsApp
@@ -148,19 +164,34 @@ app.post('/api/disconnect', async (req, res) => {
 });
 
 // Send bulk messages
-app.post('/api/send', async (req, res) => {
+app.post('/api/send', upload.array('attachments'), async (req, res) => {
     if (clientStatus !== 'ready') {
         return res.status(400).json({ success: false, message: 'WhatsApp not connected' });
     }
 
-    const { contacts, message, delay } = req.body;
-    if (!contacts || !contacts.length) {
-        return res.status(400).json({ success: false, message: 'No contacts provided' });
+    let contacts, message, delayMin, delayMax;
+    try {
+        contacts  = JSON.parse(req.body.contacts  || '[]');
+        message   = JSON.parse(req.body.message   || '[]');
+        delayMin  = parseInt(req.body.delayMin)   || 5;
+        delayMax  = parseInt(req.body.delayMax)   || 15;
+    } catch (e) {
+        return res.status(400).json({ success: false, message: 'Invalid request data: ' + e.message });
     }
+
+    if (!Array.isArray(contacts) || !contacts.length) {
+        return res.status(400).json({ success: false, message: `No contacts provided (received: ${req.body.contacts})` });
+    }
+
+    // Build MessageMedia objects once (reused for every contact)
+    const { MessageMedia } = require('whatsapp-web.js');
+    const mediaList = (req.files || []).map(f => {
+        const data = fs.readFileSync(f.path).toString('base64');
+        return { media: new MessageMedia(f.mimetype, data, f.originalname), path: f.path };
+    });
 
     res.json({ success: true, message: 'Bulk send started' });
 
-    // Send in background, emit progress via socket
     (async () => {
         let sent = 0, failed = 0;
         io.emit('bulk_start', { total: contacts.length });
@@ -168,7 +199,9 @@ app.post('/api/send', async (req, res) => {
         for (let i = 0; i < contacts.length; i++) {
             const { name, number } = contacts[i];
             const chatId = `${number}@c.us`;
-            const personalizedMsg = message.replace(/\{name\}/gi, name);
+            const tpls = Array.isArray(message) ? message : [message];
+            const tpl = tpls[Math.floor(Math.random() * tpls.length)];
+            const personalizedMsg = tpl.replace(/\{name\}/gi, name);
 
             try {
                 const isRegistered = await client.isRegisteredUser(chatId);
@@ -180,7 +213,15 @@ app.post('/api/send', async (req, res) => {
                         reason: 'Not on WhatsApp', sent, failed
                     });
                 } else {
-                    await client.sendMessage(chatId, personalizedMsg);
+                    if (mediaList.length > 0) {
+                        // Send first attachment with caption, rest without
+                        await client.sendMessage(chatId, mediaList[0].media, { caption: personalizedMsg });
+                        for (let m = 1; m < mediaList.length; m++) {
+                            await client.sendMessage(chatId, mediaList[m].media);
+                        }
+                    } else {
+                        await client.sendMessage(chatId, personalizedMsg);
+                    }
                     sent++;
                     io.emit('bulk_progress', {
                         index: i + 1, total: contacts.length,
@@ -197,9 +238,16 @@ app.post('/api/send', async (req, res) => {
             }
 
             if (i < contacts.length - 1) {
-                await new Promise(r => setTimeout(r, (delay || 3) * 1000));
+                const min = delayMin * 1000;
+                const max = delayMax * 1000;
+                const wait = Math.floor(Math.random() * (max - min + 1)) + min;
+                io.emit('bulk_progress_delay', { seconds: Math.round(wait / 1000) });
+                await new Promise(r => setTimeout(r, wait));
             }
         }
+
+        // Clean up uploaded files
+        mediaList.forEach(m => { try { fs.unlinkSync(m.path); } catch {} });
 
         io.emit('bulk_done', { sent, failed, total: contacts.length });
     })();

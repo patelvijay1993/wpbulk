@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# WhatsApp session data
+.wwebjs_auth/
+.wwebjs_cache/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Firebase credentials
+serviceAccountKey.json
+public/firebase-config.js
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Lock files (keep package-lock.json or yarn.lock, not both)
+yarn.lock
+
+# Build output
+dist/
+build/

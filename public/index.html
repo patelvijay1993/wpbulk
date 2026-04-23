@@ -56,6 +56,20 @@
   .navbar-logo svg { width: 20px; height: 20px; fill: white; }
   .navbar h1 { font-size: 18px; font-weight: 600; color: white; }
   .navbar-status { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .btn-logout {
+    background: rgba(255,255,255,0.15);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s;
+    margin-left: 12px;
+  }
+  .btn-logout:hover { background: rgba(255,255,255,0.25); }
   .status-dot { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,0.4); transition: background 0.3s; }
   .status-dot.ready { background: white; box-shadow: 0 0 6px white; }
   .status-dot.qr { background: #fbbf24; }
@@ -234,6 +248,7 @@
     <div class="status-dot" id="statusDot"></div>
     <span class="status-text" id="statusText">Not connected</span>
   </div>
+  <button class="btn-logout" onclick="logout()">Logout</button>
 </nav>
 
 <!-- MAIN -->
@@ -637,6 +652,11 @@ function addLog(msg, type = 'info') {
 }
 
 renderContacts();
+
+async function logout() {
+  await fetch('/api/auth/logout', { method: 'POST' });
+  window.location.href = '/login';
+}
 </script>
 </body>
 </html>

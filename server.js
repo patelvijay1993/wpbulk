@@ -4,12 +4,49 @@ const qrcode = require('qrcode');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
+const session = require('express-session');
+const admin = require('firebase-admin');
+
+// ─── FIREBASE ADMIN INIT ─────────────────────────────────────────────────────
+// Download your service account JSON from Firebase Console →
+// Project Settings → Service Accounts → Generate new private key
+// Then set the env var:  GOOGLE_APPLICATION_CREDENTIALS=./serviceAccountKey.json
+// OR paste the JSON into serviceAccountKey.json at the project root.
+let firebaseReady = false;
+try {
+    const serviceAccount = require('./serviceAccountKey.json');
+    admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+    firebaseReady = true;
+} catch {
+    console.warn('\n⚠️  serviceAccountKey.json not found — auth is DISABLED (dev mode)\n');
+}
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
 app.use(express.json());
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'wpbulk-secret-change-me',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 } // 7 days
+}));
+
+// Public assets needed by the login page (no auth required)
+const PUBLIC_PATHS = ['/login', '/firebase-config.js', '/socket.io', '/api/auth/login', '/api/auth/logout'];
+
+// Auth guard — always enforced; session is set after Firebase token verified
+function requireAuth(req, res, next) {
+    const isPublic = PUBLIC_PATHS.some(p => req.path === p || req.path.startsWith(p + '/'));
+    if (isPublic || req.session.uid) return next();
+    // API calls get 401, page requests get redirect
+    if (req.path.startsWith('/api/')) return res.status(401).json({ success: false, message: 'Unauthorized' });
+    res.redirect('/login');
+}
+
+app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
+app.use(requireAuth);
 app.use(express.static(path.join(__dirname, 'public')));
 
 let client = null;
@@ -61,6 +98,33 @@ io.on('connection', (socket) => {
                  clientStatus === 'qr' ? 'Scan QR code' : 'Not connected'
     });
     if (currentQR) socket.emit('qr', currentQR);
+});
+
+// ─── AUTH ENDPOINTS ──────────────────────────────────────────────────────────
+
+app.post('/api/auth/login', async (req, res) => {
+    const { idToken } = req.body;
+    if (!idToken) return res.status(400).json({ success: false, message: 'Missing token' });
+    try {
+        if (firebaseReady) {
+            const decoded = await admin.auth().verifyIdToken(idToken);
+            req.session.uid = decoded.uid;
+            req.session.email = decoded.email || '';
+        } else {
+            // No service account yet — trust the client token at face value (dev only)
+            const [, payload] = idToken.split('.');
+            const decoded = JSON.parse(Buffer.from(payload, 'base64').toString());
+            req.session.uid = decoded.user_id || decoded.sub || 'dev';
+            req.session.email = decoded.email || '';
+        }
+        res.json({ success: true });
+    } catch (err) {
+        res.status(401).json({ success: false, message: 'Invalid token' });
+    }
+});
+
+app.post('/api/auth/logout', (req, res) => {
+    req.session.destroy(() => res.json({ success: true }));
 });
 
 // ─── REST ENDPOINTS ──────────────────────────────────────────────────────────

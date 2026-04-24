@@ -1,16 +1,10 @@
 services:
   - type: web
     name: wpbulk
-    runtime: node
-    buildCommand: npm install && npx puppeteer browsers install chrome
-    startCommand: node server.js
+    runtime: docker
     envVars:
-      - key: NODE_ENV
-        value: production
       - key: SESSION_SECRET
         generateValue: true
       - key: FIREBASE_SERVICE_ACCOUNT
         sync: false
-      - key: PUPPETEER_CACHE_DIR
-        value: /opt/render/.cache/puppeteer
     healthCheckPath: /login

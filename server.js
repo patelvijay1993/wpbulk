@@ -10,17 +10,19 @@ const multer = require('multer');
 const fs = require('fs');
 
 // ─── FIREBASE ADMIN INIT ─────────────────────────────────────────────────────
-// Download your service account JSON from Firebase Console →
-// Project Settings → Service Accounts → Generate new private key
-// Then set the env var:  GOOGLE_APPLICATION_CREDENTIALS=./serviceAccountKey.json
-// OR paste the JSON into serviceAccountKey.json at the project root.
 let firebaseReady = false;
 try {
-    const serviceAccount = require('./serviceAccountKey.json');
-    admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+    // Support JSON string in env var (for Render/Railway secret files)
+    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+        admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+    } else {
+        const serviceAccount = require('./serviceAccountKey.json');
+        admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+    }
     firebaseReady = true;
 } catch {
-    console.warn('\n⚠️  serviceAccountKey.json not found — auth is DISABLED (dev mode)\n');
+    console.warn('\n⚠️  Firebase service account not found — auth token will be decoded without verification\n');
 }
 
 const app = express();
@@ -29,11 +31,18 @@ const io = new Server(server);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+const isProduction = process.env.NODE_ENV === 'production';
+app.set('trust proxy', 1); // trust Render/Railway reverse proxy for secure cookies
 app.use(session({
     secret: process.env.SESSION_SECRET || 'wpbulk-secret-change-me',
     resave: false,
     saveUninitialized: false,
-    cookie: { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 } // 7 days
+    cookie: {
+        httpOnly: true,
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        secure: isProduction,   // HTTPS only in production
+        sameSite: isProduction ? 'none' : 'lax'  // cross-site cookie for Render HTTPS
+    }
 }));
 
 // Public assets needed by the login page (no auth required)
@@ -62,7 +71,17 @@ function initClient() {
         authStrategy: new LocalAuth(),
         puppeteer: {
             headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
+            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
+                '--no-first-run',
+                '--no-zygote',
+                '--single-process',
+                '--disable-gpu'
+            ]
         }
     });
 
@@ -255,6 +274,6 @@ app.post('/api/send', upload.array('attachments'), async (req, res) => {
 
 // ─── START ───────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`\n🚀 Server running at http://localhost:${PORT}\n`);
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`\n🚀 Server running at http://0.0.0.0:${PORT}\n`);
 });

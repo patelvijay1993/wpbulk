@@ -423,9 +423,15 @@
         Each contact gets a <strong>random template</strong>. Use <code style="background:var(--border);padding:1px 5px;border-radius:4px">{name}</code> for personalization.
       </div>
       <div id="templateList"></div>
-      <button class="btn btn-outline btn-block" onclick="addTemplate()" style="margin-top:4px;border-style:dashed">
-        + Add Another Template
-      </button>
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+        <button class="btn btn-outline btn-block" onclick="addTemplate()" style="border-style:dashed">
+          + Add Another Template
+        </button>
+        <button class="btn btn-green" style="white-space:nowrap;flex-shrink:0" onclick="saveTemplatesToFirebase()">
+          💾 Save
+        </button>
+      </div>
+      <div id="tplSaveStatus" style="font-size:12px;margin-top:6px;min-height:16px;font-weight:500"></div>
     </div>
 
     <!-- Delay Setting -->
@@ -569,6 +575,76 @@
 
   </div>
 </div>
+
+<!-- Firebase SDK for Firestore -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import { getFirestore, doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyD0MPpZCsbRuntV60sHTvf4u-rpXcGRwd4",
+  authDomain: "wpbulk-456c1.firebaseapp.com",
+  projectId: "wpbulk-456c1",
+  storageBucket: "wpbulk-456c1.firebasestorage.app",
+  messagingSenderId: "917411090065",
+  appId: "1:917411090065:web:4f3fbdca5af10dc77a3930"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const auth  = getAuth(fbApp);
+const db    = getFirestore(fbApp);
+
+let currentUid = null;
+
+// Load templates when user auth state is known
+onAuthStateChanged(auth, async (user) => {
+  if (!user) return;
+  currentUid = user.uid;
+  await loadTemplates();
+});
+
+// ── LOAD from Firestore ───────────────────────────────────────────────────────
+async function loadTemplates() {
+  try {
+    const snap = await getDoc(doc(db, 'templates', currentUid));
+    if (snap.exists()) {
+      const data = snap.data().list;
+      if (Array.isArray(data) && data.length) {
+        window._templates = data;
+        window._renderTemplates && window._renderTemplates();
+        showSaveStatus('Templates loaded ✓', false);
+      }
+    }
+  } catch (e) {
+    console.error('Load templates failed:', e);
+  }
+}
+
+// ── SAVE to Firestore ─────────────────────────────────────────────────────────
+window.saveTemplatesToFirebase = async function() {
+  if (!currentUid) { showSaveStatus('Not signed in', true); return; }
+  try {
+    showSaveStatus('Saving…', false);
+    await setDoc(doc(db, 'templates', currentUid), {
+      list: window._templates || [],
+      updatedAt: new Date().toISOString()
+    });
+    showSaveStatus('Saved to Firebase ✓', false);
+  } catch (e) {
+    console.error('Save failed:', e);
+    showSaveStatus('Save failed ✗', true);
+  }
+};
+
+function showSaveStatus(msg, isError) {
+  const el = document.getElementById('tplSaveStatus');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = isError ? 'var(--red)' : 'var(--green-text)';
+  if (!isError) setTimeout(() => { el.textContent = ''; }, 3000);
+}
+</script>
 
 <script>
 const socket = io({ transports: ['polling'] });
@@ -756,10 +832,20 @@ function switchTab(tab, el) {
 let templates = [
   `Hello {name}! 👋\n\nThis is an important message from our team.\nPlease reply if you have any questions.\n\nThank you! 🙏`
 ];
-// attachments[i] = FileList/array of File objects per template
 let attachments = [[]];
 
+// Expose to Firebase module
+window._templates = templates;
+window._renderTemplates = () => { renderTemplates(); };
+
 function renderTemplates() {
+  // Sync from Firebase module load if available
+  if (window._templates && window._templates !== templates) {
+    templates = window._templates;
+    while (attachments.length < templates.length) attachments.push([]);
+    attachments.length = templates.length;
+  }
+  window._templates = templates;
   const list = document.getElementById('templateList');
   list.innerHTML = templates.map((t, i) => `
     <div class="tpl-item" id="tpl-${i}">
@@ -798,6 +884,7 @@ function escHtml(str) {
 
 function updateTemplate(i, val) {
   templates[i] = val;
+  window._templates = templates;
   const items = document.querySelectorAll('.tpl-item');
   items[i].querySelector('.msg-preview').textContent = val.replace(/\{name\}/gi, 'Sample Contact');
 }
@@ -805,6 +892,7 @@ function updateTemplate(i, val) {
 function addTemplate() {
   templates.push('Hello {name}! 👋\n\n');
   attachments.push([]);
+  window._templates = templates;
   renderTemplates();
   const items = document.querySelectorAll('.tpl-item');
   items[items.length - 1].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -814,6 +902,7 @@ function addTemplate() {
 function removeTemplate(i) {
   templates.splice(i, 1);
   attachments.splice(i, 1);
+  window._templates = templates;
   renderTemplates();
 }
 

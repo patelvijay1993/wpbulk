@@ -571,7 +571,7 @@
 </div>
 
 <script>
-const socket = io();
+const socket = io({ transports: ['polling'] });
 let contacts = [];
 let sending = false;
 

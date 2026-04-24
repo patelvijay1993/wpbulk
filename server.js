@@ -9,6 +9,10 @@ const admin = require('firebase-admin');
 const multer = require('multer');
 const fs = require('fs');
 
+// ─── CRASH PROTECTION ────────────────────────────────────────────────────────
+process.on('unhandledRejection', (err) => console.error('Unhandled rejection:', err));
+process.on('uncaughtException',  (err) => console.error('Uncaught exception:',  err));
+
 // ─── FIREBASE ADMIN INIT ─────────────────────────────────────────────────────
 let firebaseReady = false;
 try {
@@ -27,7 +31,13 @@ try {
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+    // Render free tier doesn't support WebSocket upgrades — use polling only
+    transports: ['polling'],
+    allowUpgrades: false,
+    pingTimeout: 60000,
+    pingInterval: 25000
+});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -108,7 +118,12 @@ function initClient() {
         io.emit('status', { status: 'disconnected', message: 'Disconnected from WhatsApp' });
     });
 
-    client.initialize();
+    client.initialize().catch(err => {
+        console.error('Puppeteer init failed:', err.message);
+        clientStatus = 'disconnected';
+        client = null;
+        io.emit('status', { status: 'error', message: 'Browser launch failed. Check server logs.' });
+    });
 }
 
 // ─── SOCKET.IO ───────────────────────────────────────────────────────────────

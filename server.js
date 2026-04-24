@@ -4,7 +4,7 @@ const qrcode = require('qrcode');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
-const session = require('express-session');
+const cookieSession = require('cookie-session');
 const admin = require('firebase-admin');
 const multer = require('multer');
 const fs = require('fs');
@@ -42,17 +42,14 @@ const io = new Server(server, {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 const isProduction = process.env.NODE_ENV === 'production';
-app.set('trust proxy', 1); // trust Render/Railway reverse proxy for secure cookies
-app.use(session({
-    secret: process.env.SESSION_SECRET || 'wpbulk-secret-change-me',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-        httpOnly: true,
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-        secure: isProduction,   // HTTPS only in production
-        sameSite: isProduction ? 'none' : 'lax'  // cross-site cookie for Render HTTPS
-    }
+app.set('trust proxy', 1);
+app.use(cookieSession({
+    name: 'wpbulk_sess',
+    keys: [process.env.SESSION_SECRET || 'wpbulk-secret-change-me'],
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
+    httpOnly: true
 }));
 
 // Public assets needed by the login page (no auth required)
